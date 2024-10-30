@@ -80,49 +80,12 @@ fastify.all("/incoming-call", async (request, reply) => {
 const tools = [
   {
     type: "function",
-    name: "calculate_sum",
-    description:
-      "Use this function when asked to add numbers together, for example when asked 'What's 4 + 6'?",
-    parameters: {
-      type: "object",
-      properties: {
-        a: { type: "number" },
-        b: { type: "number" },
-      },
-      required: ["a", "b"],
-    },
-  },
-  {
-    type: "function",
     name: "get_current_time",
     description:
       "Use this function to retrieve the current date and time in ISO format.",
     parameters: {
       type: "object",
       properties: {},
-    },
-  },
-  {
-    type: "function",
-    name: "check_available_slots",
-    description:
-      "Use this function to check for available booking slots in the system.",
-    parameters: {
-      type: "object",
-      properties: {},
-    },
-  },
-  {
-    type: "function",
-    name: "book_slot",
-    description:
-      "Use this function to book a specific slot. Provide the slot ID to book the slot.",
-    parameters: {
-      type: "object",
-      properties: {
-        slotId: { type: "string", description: "The ID of the slot to book" },
-      },
-      required: ["slotId"],
     },
   },
 ];
@@ -312,35 +275,43 @@ fastify.register(async (fastify) => {
     openAiWs.on("message", async (data) => {
       try {
         const response = JSON.parse(data);
-        if (response.type === "response.function_call_arguments.done") {
-          console.log(`Received event: ${response.type}`, response);
-        }
+
+        //   console.log(`Received event: ${response.type}`, response);
+        
 
         if (response.type === "response.function_call_arguments.done") {
           const function_name = response.name;
           const function_arguments = JSON.parse(response.arguments);
 
-          // Check if function call is requested
-          // if (item.type === "function_call") {
-          // Find the function in functionsMap by name
-          const result = functions[function_name](function_arguments);
-
-          if (result) {
-            // Execute the function asynchronously
-            const functionOutputEvent = {
-              type: "conversation.item.create",
-              item: {
-                type: "function_call_output",
-                call_id: response.call_id,
-                output: JSON.stringify(result),
-              },
-            };
-            openAiWs.send(JSON.stringify(functionOutputEvent));
-
-            // Request another response from OpenAI
-            openAiWs.send(JSON.stringify({ type: "response.create" }));
-            //   }
+          // Define webhook URLs based on function name
+          let webhookUrl = "";
+          if (function_name === "calculate_sum") {
+            webhookUrl = "https://hook.eu2.make.com/your-sum-webhook-id";
+          } else if (function_name === "get_current_time") {
+            webhookUrl =
+              "https://hook.eu2.make.com/8tp1a8a9llm47s21n8aorbuwqrz1s6ge";
           }
+
+          // Send a request to the webhook URL
+          const result = await fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(function_arguments),
+          })
+            .then((res) => res.json())
+            .catch((err) => ({ error: err.message }));
+
+          const functionOutputEvent = {
+            type: "conversation.item.create",
+            item: {
+              type: "function_call_output",
+              call_id: response.call_id,
+              output: JSON.stringify(result),
+            },
+          };
+            console.log(`result event: ${result}`);
+          openAiWs.send(JSON.stringify(functionOutputEvent));
+          openAiWs.send(JSON.stringify({ type: "response.create" }));
         }
         if (response.type === "response.audio.delta" && response.delta) {
           const audioDelta = {
