@@ -33,9 +33,76 @@ fastify.register(fastifyFormBody);
 fastify.register(fastifyWs);
 
 // Constants
-const SYSTEM_MESSAGE = `Go slow. Make sure you understand the input from the user in a deep and nuanced way. Ask for clarification to enable a concise response. If user start speaking in between your response than stop speaking and ask user their user. If user provide some uncomplete response than ask user to provide the complete query like( sir you were saying something can you please complete it). 
+const SYSTEM_MESSAGE = `Objective: Guide candidates professionally to schedule appointments for their preferred time slot by gathering their name, contact number, email address, and job role they’re applying for. Ensure real-time availability verification and prevent any scheduling conflicts.
 
-Keep Scope Queries: If a user responds with something outside the given parameters, handle it correctly on your own. After processing their out-of-scope query, ask for confirmation if there is anything else and if they need assistance, go ahead with further queries.
+Style Guidelines:
+
+Go Slow & Ensure Clarity: Understand the user’s input deeply, and if unclear, politely ask for clarification. If the user speaks mid-response, pause and inquire directly.
+Single Query Focus: Answer one query at a time, without repetition. Responses should be limited to three sentences, and the last sentence should move the conversation forward or ask for further input.
+Avoid Repeating: Avoid confirming details more than once, and refrain from repeating any recent responses.
+Data Confirmation: When gathering candidate details:
+Request name, contact number, and email upfront. Confirm each after they’re provided:
+Name: “Did I get your name right as [Name]?”
+Contact Number: “Just to confirm, your contact number is [Number], correct?”
+Email Address: Spell out each part clearly: “Your email is [Email Address]. That’s spelled as [spell out email]. Is that accurate?”
+Avoid Scheduling Past Times: Confirm appointments only for future time slots; if the user provides a past slot, kindly ask for a new future time.
+
+General Guidelines:
+- Ensure that each response generated is unique and doesn't repeat the phrasing or content of previous responses.
+- Provide concise, clear, and relevant responses.
+- Focus on addressing the user's specific needs and queries.
+- Determine the real-time to provide accurate information for scheduling.
+- Offer additional assistance without being pushy or repetitive.
+- Keep the answers short, to the point and concise.
+- Do ask user details for multiple times get the user details from history conversation in the same call.
+- Avoid  repetition of sentences or words in a single response and do not repeat last response in a new query.
+- Recognise the current date, day and time to schedule a class or appointment and to provide availabilities option to user.
+- Ensure to interpret and respond to a variety of client queries naturally.
+
+Real-Time Understanding & Availability:
+
+Recognize Current Day/Time: Run "getDateAndTimeD" to align accurately with terms like "tomorrow," "day after tomorrow," etc.
+Check Availability: Use "HRCheckAvailability" to verify any requested slot; if unavailable, politely ask the user for another time. Store availability details for future steps.
+Booking: If an available slot is confirmed, finalize by calling "HRBookAppointment" for the appointment.
+Tone & Language:
+Keep responses friendly, conversational, and warm—use simple, clear words and avoid formal or complex language. Aim for a supportive and enthusiastic tone, as if speaking to a close friend.
+
+Example Workflow:
+
+Start: “Hi there! Could I please have your full name, contact number, and email to set up your appointment?”
+Gather Details & Confirm: For each detail, repeat back to confirm accuracy. Spell out the email if needed.
+Job Role Inquiry: “Thank you! What job role are you applying for?”
+Preferred Time Slot: “Do you have a preferred time slot for the appointment? I’ll check availability for you.”
+Availability Check: Confirm the time using "HRCheckAvailability". If unavailable, ask for another slot.
+Booking Confirmation: “I’ve scheduled your appointment for [Day] at [Time]. You’ll receive a confirmation email shortly. Is there anything else I can help with today?”
+
+Conversation Closing: 
+- After addressing every query ask the user "Is there anything else I can assist you with?” and if user decline for further assistant than thank the user with “Thank you for contacting ABC Consultancy. We look forward to assisting you further. Have a great day! Goodbye.”
+/Conversation Closing
+
+Tone & Style: 
+- Always maintain a friendly, conversational tone with empathy and enthusiasm. Ensure responses are concise and clear.
+- Pronounce 24/7 as "twenty four by seven" instead of "twenty four slash seven".
+- Pronounce times like "7:00 pm" as "seven pm" instead of "seven zero zero pm", 2.0 am as " Two am " instead of "two point zero a m" and "12:30 AM" as "twelve thirty AM".
+- Pronounce numbers like 722 as "Seven hundred twenty two" instead of "seven double-two"
+- Pronounce contact number like 1234456789 as " one two three double four five six seven eight nine".
+/Tone & Style
+
+Clarifications: 
+- If the user’s response is unclear, ask: “It seems like you were saying something; could you please complete your query?”
+/Clarifications
+
+Non-Repetitive Responses: 
+- Avoid repeating the same phrases and address only one query at a time.
+/Non-Repetitive Responses
+
+Additional Instructions:
+- Ensure that each response generated is unique and doesn't repeat the phrasing or content of previous responses.
+- Avoid Using Fillers: Ensure responses are concise and avoid using fillers.
+- Ensure that the system accurately recognizes and records the actual date, day and time when a user books an appointment.
+- Consistency in Responses: Always provide the same response for the same query to maintain consistency and reliability.
+- Emphasize Natural Speech: Utilize casual language, contractions, and natural phrasing. Ensure empathy and friendly tone throughout. Break down complex sentences into simpler ones for clarity and brevity. Introduce synonyms and varied phrases to avoid repetition. Incorporate user data and context for personalized interactions. Add encouraging language, feedback acknowledgment, and motivational prompts to keep users engaged.
+- Handle Out-of-Scope Queries: If a user responds with something outside the given parameters, handle it correctly on your own. After processing their out-of-scope query, ask for confirmation if there is anything else and if they need assistance, go ahead with further queries.
 
 /Additional Instructions`;
 const VOICE = "alloy";
@@ -82,10 +149,49 @@ const tools = [
     type: "function",
     name: "get_current_time",
     description:
-      "Use this function to retrieve the current date and time in ISO format.",
+      "Use this function to retrieve the current date and time in IST format.",
     parameters: {
       type: "object",
       properties: {},
+    },
+  },
+  {
+    type: "function",
+    name: "check_availability",
+    description:
+      "Use this function to check the availability of slots to book for an appointment for Job Roles",
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    type: "function",
+    name: "book_slots",
+    description: "Use this function to book an appointment for Job Roles.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Name of the person" },
+        contact_number: {
+          type: "string",
+          description: "Contact number of the person",
+        },
+        email: { type: "string", description: "Email of the person" },
+        job_role: {
+          type: "string",
+          description: "Job role for the appointment",
+        },
+        time: {
+          type: "string",
+          description: "Time for the appointment, e.g., '12:00 PM'",
+        },
+        date: {
+          type: "string",
+          description: "Date for the appointment, e.g., '2024-11-02'",
+        },
+      },
+      required: ["name", "contact_number", "email", "job_role", "time", "date"],
     },
   },
 ];
@@ -199,7 +305,7 @@ fastify.register(async (fastify) => {
           content: [
             {
               type: "input_text",
-              text: 'Hello and Welcome to ABC Real Estate. How can i assist you today?"',
+              text: 'Hello, thank you for joining ABC Consultancy today! Could I please have your full name?"',
             },
           ],
         },
@@ -277,42 +383,90 @@ fastify.register(async (fastify) => {
         const response = JSON.parse(data);
 
         //   console.log(`Received event: ${response.type}`, response);
-        
 
-        if (response.type === "response.function_call_arguments.done") {
-          const function_name = response.name;
-          const function_arguments = JSON.parse(response.arguments);
+if (response.type === "response.function_call_arguments.done") {
+  const function_name = response.name;
+  let function_arguments = JSON.parse(response.arguments);
+  console.log("Function Arguments", function_arguments);
 
-          // Define webhook URLs based on function name
-          let webhookUrl = "";
-          if (function_name === "calculate_sum") {
-            webhookUrl = "https://hook.eu2.make.com/your-sum-webhook-id";
-          } else if (function_name === "get_current_time") {
-            webhookUrl =
-              "https://hook.eu2.make.com/8tp1a8a9llm47s21n8aorbuwqrz1s6ge";
-          }
 
-          // Send a request to the webhook URL
-          const result = await fetch(webhookUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(function_arguments),
-          })
-            .then((res) => res.json())
-            .catch((err) => ({ error: err.message }));
 
-          const functionOutputEvent = {
-            type: "conversation.item.create",
-            item: {
-              type: "function_call_output",
-              call_id: response.call_id,
-              output: JSON.stringify(result),
-            },
-          };
-            console.log(`result event: ${result}`);
-          openAiWs.send(JSON.stringify(functionOutputEvent));
-          openAiWs.send(JSON.stringify({ type: "response.create" }));
-        }
+  // Define webhook URLs based on function name
+  let webhookUrl = "";
+  if (function_name === "calculate_sum") {
+    webhookUrl = "https://hook.eu2.make.com/your-sum-webhook-id";
+  } else if (function_name === "get_current_time") {
+    webhookUrl = "https://hook.eu2.make.com/8tp1a8a9llm47s21n8aorbuwqrz1s6ge";
+  } else if (function_name === "check_availability") {
+    webhookUrl = "https://hook.eu2.make.com/s3g6xd5x5jxp5tiyad0d99dmqdwbmyyv";
+  } else if (function_name === "book_slots") {
+    webhookUrl = "https://hook.eu2.make.com/98wsus3ynvh3r4qgq3evjwli77nsgiqc";
+    // Convert 'start' to a Date object based on provided 'date' and 'time'
+    const startDateTime = new Date(
+      `${function_arguments.date} ${function_arguments.time}`
+    );
+
+    if (isNaN(startDateTime.getTime())) {
+      console.error("Invalid start date format");
+    } else {
+      // Set 'end' to 30 minutes after 'start'
+      const endDateTime = new Date(startDateTime.getTime() + 30 * 60000);
+
+      // Format 'Start Date' and 'End Date' as "October 22, 2024 11:30 PM"
+      function_arguments.start = startDateTime;
+      function_arguments.end = endDateTime;
+    }
+
+    // Additional event details
+    function_arguments.summary = "Appointment with Nilesh";
+    function_arguments.event = "Appointment with Nilesh";
+    function_arguments.calendar = "domusny74@gmail.com";
+    function_arguments.duration = "00:30";
+    function_arguments.visibility = "default";
+    function_arguments.allDayEvent = false;
+    function_arguments.transparency = "opaque";
+    function_arguments.conferenceDate = false;
+
+    console.log(
+      "Function Arguments with Start and End Dates:",
+      function_arguments
+    );
+  }
+
+  // Send a request to the webhook URL
+  const result = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(function_arguments),
+  })
+    .then(async (res) => {
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await res.json();
+      } else {
+        return { error: await res.text() };
+      }
+    })
+    .catch((err) => ({ error: err.message }));
+
+  const functionOutputEvent = {
+    type: "conversation.item.create",
+    item: {
+      type: "function_call_output",
+      call_id: response.call_id,
+      output: JSON.stringify(result),
+    },
+  };
+
+  console.log("Result:", result);
+  openAiWs.send(JSON.stringify(functionOutputEvent));
+  openAiWs.send(JSON.stringify({ type: "response.create" }));
+}
+
+
+
+
+
         if (response.type === "response.audio.delta" && response.delta) {
           const audioDelta = {
             event: "media",
