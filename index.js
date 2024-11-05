@@ -418,14 +418,14 @@ if (response.type === "response.function_call_arguments.done") {
     }
 
     // Additional event details
-    function_arguments.summary = "Appointment with Nilesh";
-    function_arguments.event = "Appointment with Nilesh";
-    function_arguments.calendar = "domusny74@gmail.com";
-    function_arguments.duration = "00:30";
-    function_arguments.visibility = "default";
-    function_arguments.allDayEvent = false;
-    function_arguments.transparency = "opaque";
-    function_arguments.conferenceDate = false;
+    // function_arguments.summary = "Appointment with Nilesh";
+    // function_arguments.event = "Appointment with Nilesh";
+    // function_arguments.calendar = "domusny74@gmail.com";
+    // function_arguments.duration = "00:30";
+    // function_arguments.visibility = "default";
+    // function_arguments.allDayEvent = false;
+    // function_arguments.transparency = "opaque";
+    // function_arguments.conferenceDate = false;
 
     console.log(
       "Function Arguments with Start and End Dates:",
