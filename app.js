@@ -637,7 +637,7 @@ if (response.type === "response.function_call_arguments.done") {
   });
 });
 
-fastify.listen({ port: PORT,host='0.0.0.0' }, (err) => {
+fastify.listen({ port: PORT}, (err) => {
   if (err) {
     console.error(err);
     process.exit(1);
